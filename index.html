@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NO SAKE, NO LIFE</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #f7f3ee;
+      color: #2c2218;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 13px;
+      min-height: 100vh;
+    }
+
+    .screen { display: none; flex-direction: column; min-height: 100vh; }
+    .screen.active { display: flex; }
+
+    .header {
+      background: #7a3e1a;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .header-title { font-size: 14px; font-weight: 700; color: #fff; letter-spacing: 0.08em; }
+    .header-sub { font-size: 10px; color: rgba(255,255,255,0.65); margin-top: 2px; letter-spacing: 0.05em; }
+
+    .icon-btn {
+      background: rgba(255,255,255,0.15);
+      border: none; color: #fff; cursor: pointer; font-size: 15px;
+      width: 30px; height: 30px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s;
+    }
+    .icon-btn:hover { background: rgba(255,255,255,0.28); }
+
+    .body { padding: 14px 16px; max-width: 640px; margin: 0 auto; width: 100%; }
+
+    .settings-desc {
+      font-size: 11px; color: #5a4a3a; line-height: 1.75; margin-bottom: 14px;
+      background: #fff3e0; border-left: 3px solid #e07820;
+      padding: 8px 10px; border-radius: 0 4px 4px 0;
+    }
+    .settings-link { color: #c05010; font-weight: 700; }
+
+    .tabs {
+      display: flex; background: #e8e0d8; border-radius: 8px;
+      padding: 3px; margin-bottom: 14px; gap: 3px;
+    }
+    .tab {
+      flex: 1; padding: 7px 4px; background: none; border: none;
+      border-radius: 6px; color: #7a6a5a; font-family: 'Noto Sans JP', sans-serif;
+      font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.18s;
+    }
+    .tab.active { background: #fff; color: #7a3e1a; font-weight: 700; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+
+    .drop-zone {
+      border: 2px dashed #c8a888; border-radius: 8px; padding: 32px 12px;
+      text-align: center; cursor: pointer; background: #fff;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative; margin-bottom: 12px;
+    }
+    .drop-zone:hover, .drop-zone.drag-over { border-color: #7a3e1a; background: #fff8f2; }
+    #fileInput { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .drop-icon { font-size: 32px; margin-bottom: 8px; }
+    .drop-text { font-size: 12px; color: #8a7060; line-height: 1.6; }
+
+    .preview-wrap { position: relative; margin-bottom: 12px; }
+    .preview-wrap img {
+      width: 100%; max-height: 200px; object-fit: contain;
+      border: 2px solid #e0d0c0; border-radius: 8px; background: #fff; display: block;
+    }
+    .remove-btn {
+      position: absolute; top: 6px; right: 6px;
+      background: rgba(122,62,26,0.85); border: none; color: #fff;
+      border-radius: 50%; width: 28px; height: 28px; font-size: 14px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+
+    .input-group { margin-bottom: 12px; }
+    label { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #6a5040; margin-bottom: 5px; text-transform: uppercase; }
+
+    input[type=text], input[type=password], textarea {
+      width: 100%; background: #fff; border: 1.5px solid #d8c8b8;
+      border-radius: 6px; color: #2c2218; font-family: 'Noto Sans JP', sans-serif;
+      font-size: 13px; padding: 9px 12px; outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s; resize: none;
+    }
+    input::placeholder, textarea::placeholder { color: #b0a090; }
+    input:focus, textarea:focus { border-color: #7a3e1a; box-shadow: 0 0 0 3px rgba(122,62,26,0.1); }
+
+    .btn {
+      width: 100%; padding: 12px; background: #7a3e1a; border: none;
+      border-radius: 7px; color: #fff; font-family: 'Noto Sans JP', sans-serif;
+      font-size: 14px; font-weight: 700; letter-spacing: 0.05em;
+      cursor: pointer; transition: background 0.2s, transform 0.1s;
+    }
+    .btn:hover:not(:disabled) { background: #9a5025; }
+    .btn:active:not(:disabled) { transform: scale(0.99); }
+    .btn:disabled { background: #c8b8a8; color: #f0e8e0; cursor: not-allowed; }
+
+    #noKeyWarning {
+      background: #fff3e0; border: 1.5px solid #f0a050; border-radius: 6px;
+      padding: 8px 10px; margin-bottom: 12px; font-size: 11px; color: #8a4010; line-height: 1.6;
+    }
+
+    .result {
+      margin-top: 12px; background: #fff; border: 1.5px solid #d8c8b8;
+      border-radius: 8px; padding: 14px; animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    .detected-name {
+      font-size: 14px; font-weight: 700; color: #2c2218; margin-bottom: 12px;
+      line-height: 1.5; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    }
+    .confidence-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; }
+    .high   { background: #e6f4ea; color: #2d7a3a; }
+    .medium { background: #fff8e1; color: #9a6800; }
+    .low    { background: #fce8e6; color: #c0392b; }
+
+    .result-section { margin-bottom: 12px; }
+    .result-section:last-child { margin-bottom: 0; }
+    .result-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #7a3e1a;
+      text-transform: uppercase; margin-bottom: 7px; padding-bottom: 5px;
+      border-bottom: 1.5px solid #f0e4d8;
+    }
+    .category-path { font-size: 13px; color: #2c2218; line-height: 1.9; font-weight: 500; }
+    .category-sep { color: #b08060; margin: 0 5px; font-weight: 400; }
+    .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+    .tag { background: #f5ece3; border: 1.5px solid #dfc8b0; border-radius: 5px; padding: 3px 9px; font-size: 11px; font-weight: 500; color: #5a3018; }
+    .tag.fixed { background: #f0f0f0; border-color: #d8d8d8; color: #909090; }
+
+    .copy-btn {
+      font-size: 11px; font-weight: 700; color: #7a3e1a; background: #f5ece3;
+      border: 1.5px solid #dfc8b0; border-radius: 5px; padding: 5px 12px;
+      cursor: pointer; font-family: 'Noto Sans JP', sans-serif; transition: background 0.2s;
+    }
+    .copy-btn:hover { background: #ead8c8; }
+
+    .note {
+      font-size: 11px; color: #7a6050; line-height: 1.7; margin-top: 10px;
+      padding: 8px 10px; background: #fafaf8; border-radius: 5px; border: 1px solid #e8e0d8;
+    }
+
+    .loading { text-align: center; padding: 20px 10px; color: #8a7060; font-size: 12px; }
+    .loading-dots { display: inline-flex; gap: 5px; margin-top: 8px; }
+    .loading-dots span {
+      width: 6px; height: 6px; background: #7a3e1a; border-radius: 50%;
+      display: inline-block; animation: bounce 1.2s ease infinite;
+    }
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce { 0%, 80%, 100% { opacity: 0.25; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
+
+    .error-msg {
+      font-size: 11px; color: #c0392b; background: #fce8e6;
+      border: 1px solid #f5c6c2; border-radius: 6px; padding: 8px 10px;
+      margin-top: 10px; line-height: 1.6;
+    }
+
+    .article-block { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; }
+    .article-section { background: #fff; border: 1.5px solid #d8c8b8; border-radius: 8px; padding: 14px; animation: fadeIn 0.3s ease; }
+    .article-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #7a3e1a; text-transform: uppercase; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1.5px solid #f0e4d8; }
+    .article-title { font-size: 15px; font-weight: 700; color: #2c2218; line-height: 1.6; margin-bottom: 10px; }
+    .article-body { font-size: 13px; color: #3a2c1e; line-height: 1.9; white-space: pre-wrap; max-height: 280px; overflow-y: auto; margin-bottom: 10px; padding-right: 4px; }
+    .article-body::-webkit-scrollbar { width: 4px; }
+    .article-body::-webkit-scrollbar-thumb { background: #d8c8b8; border-radius: 2px; }
+
+    .btn-wp {
+      width: 100%; padding: 12px; background: #21759b; border: none;
+      border-radius: 7px; color: #fff; font-family: 'Noto Sans JP', sans-serif;
+      font-size: 14px; font-weight: 700; letter-spacing: 0.05em;
+      cursor: pointer; transition: background 0.2s, transform 0.1s; margin-top: 10px;
+    }
+    .btn-wp:hover:not(:disabled) { background: #2a8db8; }
+    .btn-wp:active:not(:disabled) { transform: scale(0.99); }
+    .btn-wp:disabled { background: #c8b8a8; color: #f0e8e0; cursor: not-allowed; }
+
+    .wp-status { margin-top: 10px; border-radius: 6px; padding: 10px 12px; font-size: 12px; line-height: 1.7; }
+    .wp-status.success { background: #e6f4ea; border: 1.5px solid #a8d8b0; color: #1a5c28; }
+    .wp-status.error   { background: #fce8e6; border: 1.5px solid #f5c6c2; color: #c0392b; }
+    .wp-status a { color: #21759b; font-weight: 700; text-decoration: none; }
+    .wp-status a:hover { text-decoration: underline; }
+
+    .settings-section-title {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: #7a3e1a;
+      text-transform: uppercase; margin: 16px 0 10px; padding-bottom: 6px;
+      border-bottom: 1.5px solid #f0e4d8;
+    }
+    .settings-section-title:first-child { margin-top: 0; }
+
+    #saveMsg { font-size: 11px; color: #2d7a3a; background: #e6f4ea; border-radius: 5px; padding: 6px 10px; margin-top: 8px; text-align: center; font-weight: 700; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<!-- ── SETTINGS SCREEN ── -->
+<div id="settingsScreen" class="screen">
+  <div class="header">
+    <div>
+      <div class="header-title">⚙️ 設定</div>
+      <div class="header-sub">API・WordPress 接続</div>
+    </div>
+    <button class="icon-btn" id="closeSettings">✕</button>
+  </div>
+  <div class="body">
+    <div class="settings-section-title">Anthropic API</div>
+    <div class="settings-desc">
+      <a class="settings-link" href="https://console.anthropic.com/settings/keys" target="_blank">Anthropicコンソール</a>
+      でAPIキーを取得してください。
+    </div>
+    <div class="input-group">
+      <label>API KEY</label>
+      <input type="password" id="apiKeyInput" placeholder="sk-ant-..." />
+    </div>
+
+    <div class="settings-section-title">WordPress 接続</div>
+    <div class="settings-desc">
+      <code>wp-content/mu-plugins/sake-extension-api.php</code> に設定した秘密キーを入力してください。
+    </div>
+    <div class="input-group">
+      <label>サイト URL</label>
+      <input type="text" id="wpUrlInput" placeholder="https://holiday-style.com/sake" />
+    </div>
+    <div class="input-group">
+      <label>秘密キー</label>
+      <input type="password" id="wpPassInput" placeholder="PHPファイルに設定したもの" />
+    </div>
+
+    <button class="btn" id="saveApiKey">保存する</button>
+    <div id="saveMsg" class="hidden">✓ 保存しました</div>
+    <button class="btn" id="wpTestBtn" style="margin-top:8px;background:#21759b;">🔍 WordPress 接続テスト</button>
+    <div id="wpTestResult" class="wp-status hidden" style="margin-top:8px;"></div>
+  </div>
+</div>
+
+<!-- ── MAIN SCREEN ── -->
+<div id="mainScreen" class="screen active">
+  <div class="header">
+    <div>
+      <div class="header-title">🍶 NO SAKE, NO LIFE</div>
+      <div class="header-sub">カテゴリ・タグ補完ツール</div>
+    </div>
+    <button class="icon-btn" id="openSettings">⚙️</button>
+  </div>
+
+  <div class="body">
+    <div id="noKeyWarning" class="hidden">
+      ⚠️ APIキーが未設定です。右上の ⚙️ から設定してください。
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="image">📷 写真から解析</button>
+      <button class="tab" data-tab="text">✏️ 名前から検索</button>
+    </div>
+
+    <div id="tabImage">
+      <div id="dropZone" class="drop-zone">
+        <input type="file" id="fileInput" accept="image/*" />
+        <div class="drop-icon">🍶</div>
+        <div class="drop-text">
+          クリックまたはドロップで写真を選択<br>
+          <span style="font-size:10px;color:#b0a090;">ラベルが写っていればOK</span>
+        </div>
+      </div>
+      <div id="previewWrap" class="preview-wrap hidden">
+        <img id="previewImg" src="" alt="preview" />
+        <button class="remove-btn" id="removeImg">×</button>
+      </div>
+    </div>
+
+    <div id="tabText" class="hidden">
+      <div class="input-group">
+        <label>お酒の名前</label>
+        <input type="text" id="sakeNameInput" placeholder="例: 越弌 純米大吟醸 S-trooper" />
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label>テイスティングメモ（任意）</label>
+      <textarea id="notesInput" rows="2" placeholder="例: みずみずしくてフレッシュ、りんごみたいな香り..."></textarea>
+    </div>
+
+    <button class="btn" id="analyzeBtn" disabled>カテゴリ・タグを提案する</button>
+
+    <div id="loadingBlock" class="loading hidden">
+      <div id="loadingText">解析中...</div>
+      <div class="loading-dots"><span></span><span></span><span></span></div>
+    </div>
+
+    <div id="errorBlock" class="error-msg hidden"></div>
+
+    <div id="resultBlock" class="result hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div id="detectedName" class="detected-name" style="margin-bottom:0;"></div>
+        <button class="copy-btn" id="editToggleBtn" style="white-space:nowrap;margin-left:8px;">✏️ 編集</button>
+      </div>
+
+      <!-- 表示モード -->
+      <div id="viewMode">
+        <div class="result-section">
+          <div class="result-label">カテゴリ（WordPress に追加する順）</div>
+          <div id="categoryPath" class="category-path"></div>
+        </div>
+        <div class="result-section">
+          <div class="result-label">タグ</div>
+          <div id="tagsContainer" class="tags"></div>
+          <button class="copy-btn" id="copyBtn">📋 タグをコピー</button>
+        </div>
+      </div>
+
+      <!-- 編集モード -->
+      <div id="editMode" class="hidden">
+        <div class="input-group">
+          <label>お酒の名前</label>
+          <input type="text" id="editSakeName" placeholder="正しい銘柄名を入力" />
+        </div>
+        <div class="input-group">
+          <label>酒蔵名</label>
+          <input type="text" id="editBrewery" placeholder="正しい酒蔵名を入力" />
+        </div>
+        <p style="font-size:10px;color:#8a7060;margin:-6px 0 10px;">変更した項目をもとに、カテゴリ・タグ・補足を自動更新します</p>
+        <button class="btn" id="editSaveBtn" style="font-size:13px;padding:9px;">✓ 確定する</button>
+      </div>
+
+      <div id="noteBlock" class="note hidden"></div>
+      <div class="result-section" style="margin-top:14px;">
+        <button class="btn" id="generateBtn">✍️ 記事を生成する</button>
+      </div>
+    </div>
+
+    <div id="articleBlock" class="article-block hidden">
+      <div class="article-section">
+        <div class="article-label">タイトル</div>
+        <div id="articleTitle" class="article-title"></div>
+        <div id="articleSlug" style="font-size:11px;color:#8a7060;margin-top:4px;margin-bottom:10px;letter-spacing:0.03em;"></div>
+        <button class="copy-btn" id="copyTitleBtn">📋 タイトルをコピー</button>
+      </div>
+      <div class="article-section">
+        <div class="article-label">本文</div>
+        <div id="articleBody" class="article-body"></div>
+        <button class="copy-btn" id="copyBodyBtn">📋 本文をコピー</button>
+      </div>
+      <div id="facebookSection" class="article-section hidden">
+        <div class="article-label" style="color:#1877f2;">Facebook 投稿文</div>
+        <div id="facebookText" class="article-body" style="max-height:120px;"></div>
+        <button class="copy-btn" id="copyFbBtn" style="color:#1877f2;border-color:#1877f2;background:#eef3ff;">📋 Facebookテキストをコピー</button>
+      </div>
+      <button class="btn-wp" id="wpPostBtn">🟦 WordPressに下書き保存</button>
+      <div id="wpStatus" class="wp-status hidden"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const FIXED_TAGS = ["日本酒", "日本酒好きとつながりたい"];
+
+let currentTab = "image";
+let imageBase64 = null;
+let imageType = null;
+let apiKey = null;
+let allTagsForCopy = [];
+let lastParsed = null;
+
+const $ = (id) => document.getElementById(id);
+
+const mainScreen    = $("mainScreen");
+const settingsScreen = $("settingsScreen");
+const openSettings  = $("openSettings");
+const closeSettings = $("closeSettings");
+const apiKeyInput   = $("apiKeyInput");
+const saveApiKeyBtn = $("saveApiKey");
+const saveMsg       = $("saveMsg");
+const noKeyWarning  = $("noKeyWarning");
+const analyzeBtn    = $("analyzeBtn");
+const loadingBlock  = $("loadingBlock");
+const loadingText   = $("loadingText");
+const errorBlock    = $("errorBlock");
+const resultBlock   = $("resultBlock");
+const fileInput     = $("fileInput");
+const dropZone      = $("dropZone");
+const previewWrap   = $("previewWrap");
+const previewImg    = $("previewImg");
+const removeImg     = $("removeImg");
+const tabImage      = $("tabImage");
+const tabText       = $("tabText");
+const sakeNameInput = $("sakeNameInput");
+const notesInput    = $("notesInput");
+const detectedName  = $("detectedName");
+const categoryPath  = $("categoryPath");
+const tagsContainer = $("tagsContainer");
+const copyBtn       = $("copyBtn");
+const noteBlock     = $("noteBlock");
+const generateBtn   = $("generateBtn");
+const articleBlock  = $("articleBlock");
+const articleTitle  = $("articleTitle");
+const articleBody   = $("articleBody");
+const copyTitleBtn  = $("copyTitleBtn");
+const copyBodyBtn   = $("copyBodyBtn");
+const wpPostBtn     = $("wpPostBtn");
+const wpStatus      = $("wpStatus");
+const wpUrlInput    = $("wpUrlInput");
+const wpPassInput   = $("wpPassInput");
+const wpTestBtn     = $("wpTestBtn");
+const wpTestResult  = $("wpTestResult");
+
+// ── Init（localStorageから読み込み）──────────────────────
+apiKey = localStorage.getItem("apiKey") || "";
+if (apiKey) {
+  apiKeyInput.value = apiKey;
+  noKeyWarning.classList.add("hidden");
+} else {
+  noKeyWarning.classList.remove("hidden");
+}
+wpUrlInput.value  = localStorage.getItem("wpUrl")  || "";
+wpPassInput.value = localStorage.getItem("wpPass") || "";
+updateAnalyzeBtn();
+
+// ── Settings ───────────────────────────────────────────
+openSettings.addEventListener("click", () => {
+  mainScreen.classList.remove("active");
+  settingsScreen.classList.add("active");
+});
+
+closeSettings.addEventListener("click", () => {
+  settingsScreen.classList.remove("active");
+  mainScreen.classList.add("active");
+});
+
+saveApiKeyBtn.addEventListener("click", () => {
+  const key    = apiKeyInput.value.trim();
+  if (!key) return;
+  const wpUrl  = wpUrlInput.value.trim().replace(/\/$/, "");
+  const wpPass = wpPassInput.value.trim();
+  localStorage.setItem("apiKey", key);
+  localStorage.setItem("wpUrl",  wpUrl);
+  localStorage.setItem("wpPass", wpPass);
+  apiKey = key;
+  noKeyWarning.classList.add("hidden");
+  saveMsg.classList.remove("hidden");
+  updateAnalyzeBtn();
+  setTimeout(() => saveMsg.classList.add("hidden"), 2000);
+});
+
+// ── Tabs ───────────────────────────────────────────────
+document.querySelectorAll(".tab").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    currentTab = btn.dataset.tab;
+    document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+    btn.classList.add("active");
+    tabImage.classList.toggle("hidden", currentTab !== "image");
+    tabText.classList.toggle("hidden",  currentTab !== "text");
+    clearResult();
+    updateAnalyzeBtn();
+  });
+});
+
+// ── Image ──────────────────────────────────────────────
+fileInput.addEventListener("change", (e) => handleFile(e.target.files[0]));
+
+dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("drag-over"); });
+dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+dropZone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dropZone.classList.remove("drag-over");
+  handleFile(e.dataTransfer.files[0]);
+});
+
+removeImg.addEventListener("click", () => {
+  imageBase64 = null; imageType = null;
+  previewWrap.classList.add("hidden");
+  dropZone.classList.remove("hidden");
+  fileInput.value = "";
+  clearResult(); updateAnalyzeBtn();
+});
+
+function handleFile(file) {
+  if (!file || !file.type.startsWith("image/")) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const MAX = 1600;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else        { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+      imageBase64 = dataUrl.split(",")[1];
+      imageType   = "image/jpeg";
+      previewImg.src = dataUrl;
+      dropZone.classList.add("hidden");
+      previewWrap.classList.remove("hidden");
+      clearResult(); updateAnalyzeBtn();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+sakeNameInput.addEventListener("input", updateAnalyzeBtn);
+
+// ── Analyze ────────────────────────────────────────────
+analyzeBtn.addEventListener("click", analyze);
+
+function updateAnalyzeBtn() {
+  const hasKey     = !!apiKey;
+  const hasContent = currentTab === "image" ? !!imageBase64 : !!sakeNameInput.value.trim();
+  analyzeBtn.disabled = !(hasKey && hasContent);
+}
+
+async function analyze() {
+  clearResult();
+  loadingBlock.classList.remove("hidden");
+  loadingText.textContent = currentTab === "image" ? "ラベルを読み取っています..." : "蔵元情報を調べています...";
+  analyzeBtn.disabled = true;
+
+  const jsonInstruction = `
+必ずJSON形式のみで返してください（マークダウンや説明文は不要）:
+{
+  "detected_name": "検出したお酒の名前（フル）",
+  "brewery": "蔵元名",
+  "prefecture": "都道府県名",
+  "city": "市区町村名",
+  "categories": ["日本酒", "都道府県名", "蔵元名"],
+  "tags": ["都道府県名", "市区町村名", "蔵元名"],
+  "confidence": "high/medium/low",
+  "note": "補足（不要なら空文字）"
+}`;
+
+  const notes = notesInput.value.trim();
+  let messages;
+
+  if (currentTab === "image") {
+    messages = [{ role: "user", content: [
+      { type: "image", source: { type: "base64", media_type: imageType, data: imageBase64 } },
+      { type: "text", text: `この日本酒の写真からラベルを読み取り、お酒の名前と蔵元を特定してください。
+日本酒ブログ「NO SAKE, NO LIFE」のWordPress投稿用カテゴリとタグを提案します。
+カテゴリ: 日本酒 > 都道府県名 > 蔵元名（3階層）
+タグ: 都道府県名、市区町村名（蔵元所在地）、蔵元名
+※「日本酒」「日本酒好きとつながりたい」は固定タグなので除く
+${notes ? `テイスティングメモ: ${notes}` : ""}
+${jsonInstruction}` }
+    ]}];
+  } else {
+    messages = [{ role: "user", content: `日本酒ブログ投稿用のカテゴリとタグを提案してください。
+お酒の名前: ${sakeNameInput.value.trim()}
+テイスティングメモ: ${notes || "なし"}
+カテゴリ: 日本酒 > 都道府県名 > 蔵元名
+タグ: 都道府県名、市区町村名、蔵元名（「日本酒」「日本酒好きとつながりたい」は除く）
+${jsonInstruction}` }];
+  }
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({ model: "claude-opus-4-5", max_tokens: 1000, messages })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message || "APIエラー");
+
+    const rawText = (data.content || []).find(b => b.type === "text")?.text || "";
+    const match = rawText.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error(`JSONが見つかりません: ${rawText.slice(0, 100)}`);
+    const parsed = JSON.parse(match[0]);
+    lastParsed = parsed;
+    showResult(parsed);
+  } catch (e) {
+    errorBlock.textContent = e.message.startsWith("JSONが") ? `解析エラー: ${e.message}` : e.message.includes("API") ? `APIエラー: ${e.message}` : `エラー: ${e.message}`;
+    errorBlock.classList.remove("hidden");
+  } finally {
+    loadingBlock.classList.add("hidden");
+    updateAnalyzeBtn();
+  }
+}
+
+function showResult(parsed, showFlash = false) {
+  const confClass = parsed.confidence === "high" ? "high" : parsed.confidence === "medium" ? "medium" : "low";
+  const confLabel = parsed.confidence === "high" ? "確信度：高" : parsed.confidence === "medium" ? "確信度：中" : "確信度：低";
+  detectedName.innerHTML = `🍶 ${esc(parsed.detected_name)} <span class="confidence-badge ${confClass}">${confLabel}</span>`;
+  categoryPath.innerHTML = (parsed.categories || []).map((c, i) =>
+    i === 0 ? esc(c) : `<span class="category-sep">›</span>${esc(c)}`
+  ).join("");
+  allTagsForCopy = [...(parsed.tags || []), ...FIXED_TAGS];
+  tagsContainer.innerHTML =
+    (parsed.tags || []).map((t) => `<span class="tag">${esc(t)}</span>`).join("") +
+    FIXED_TAGS.map((t) => `<span class="tag fixed">${esc(t)}</span>`).join("");
+  noteBlock.textContent = parsed.note ? `💬 ${parsed.note}` : "";
+  noteBlock.classList.toggle("hidden", !parsed.note);
+  $("editMode").classList.add("hidden");
+  $("viewMode").classList.remove("hidden");
+  $("editToggleBtn").textContent = "✏️ 編集";
+  resultBlock.classList.remove("hidden");
+  if (showFlash) {
+    $("editToggleBtn").textContent = "✓ 更新しました";
+    setTimeout(() => { $("editToggleBtn").textContent = "✏️ 編集"; }, 2000);
+  }
+}
+
+// ── Edit Mode ──────────────────────────────────────────
+$("editToggleBtn").addEventListener("click", () => {
+  const isEditing = !$("editMode").classList.contains("hidden");
+  if (isEditing) {
+    $("editMode").classList.add("hidden");
+    $("viewMode").classList.remove("hidden");
+    $("editToggleBtn").textContent = "✏️ 編集";
+  } else {
+    const cats = lastParsed.categories || [];
+    $("editSakeName").value = lastParsed.detected_name || "";
+    $("editBrewery").value  = cats[cats.length - 1] || "";
+    $("editMode").classList.remove("hidden");
+    $("viewMode").classList.add("hidden");
+    $("editToggleBtn").textContent = "✕ キャンセル";
+  }
+});
+
+$("editSaveBtn").addEventListener("click", async () => {
+  const newName    = $("editSakeName").value.trim();
+  const newBrewery = $("editBrewery").value.trim();
+  if (!newName && !newBrewery) return;
+
+  $("editSaveBtn").disabled = true;
+  $("editSaveBtn").textContent = "更新中...";
+
+  const sakeChanged    = !!newName;
+  const breweryChanged = !!newBrewery;
+  const sakeName       = newName    || lastParsed.detected_name || "";
+  const breweryName    = newBrewery || lastParsed.brewery       || "";
+
+  // 変更された項目を「確定値」として明示し、AIに整合性チェックを依頼する
+  const sakeLine    = sakeChanged    ? `銘柄名（確定）: ${sakeName}`    : `銘柄名（参考）: ${sakeName}`;
+  const breweryLine = breweryChanged ? `蔵元名（確定）: ${breweryName}` : `蔵元名（参考）: ${breweryName}`;
+
+  try {
+    const prompt = `日本酒ブログ投稿用の情報を整理してください。
+${sakeLine}
+${breweryLine}
+
+【ルール】
+- 「確定」とある値は必ずそのまま使用してください
+- 「参考」とある値は、「確定」の値と整合しない場合は正しい値に修正してください
+- 蔵元から都道府県・市区町村を正確に特定してください
+- カテゴリ: 日本酒 > 都道府県名 > 蔵元名（3階層固定）
+- タグ: 都道府県名、市区町村名、蔵元名（「日本酒」「日本酒好きとつながりたい」は除く）
+
+必ずJSON形式のみで返してください（説明文不要）:
+{
+  "detected_name": "銘柄名（正式名称）",
+  "brewery": "蔵元名",
+  "prefecture": "都道府県名",
+  "city": "市区町村名",
+  "categories": ["日本酒", "都道府県名", "蔵元名"],
+  "tags": ["都道府県名", "市区町村名", "蔵元名"],
+  "note": "補足情報があれば記載、なければ空文字"
+}`;
+
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({ model: "claude-opus-4-5", max_tokens: 500, messages: [{ role: "user", content: prompt }] })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const rawText = (data.content || []).find(b => b.type === "text")?.text || "";
+    const match = rawText.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error(`JSONが見つかりません。レスポンス: ${rawText.slice(0, 200)}`);
+    const updated = JSON.parse(match[0]);
+    lastParsed.detected_name = updated.detected_name || sakeName;
+    lastParsed.brewery       = updated.brewery       || newBrewery || lastParsed.brewery;
+    lastParsed.prefecture    = updated.prefecture    || lastParsed.prefecture;
+    lastParsed.city          = updated.city          || lastParsed.city;
+    lastParsed.categories    = updated.categories?.length ? updated.categories : lastParsed.categories;
+    lastParsed.tags          = updated.tags?.length       ? updated.tags       : lastParsed.tags;
+    lastParsed.note          = "note" in updated ? updated.note : lastParsed.note;
+  } catch (e) {
+    errorBlock.textContent = `更新エラー: ${e.message}`;
+    errorBlock.classList.remove("hidden");
+    const cats = lastParsed.categories || [];
+    const oldBrewery = cats[cats.length - 1] || "";
+    if (newName)    lastParsed.detected_name = newName;
+    if (newBrewery) {
+      lastParsed.categories = [...cats.slice(0, -1), newBrewery];
+      lastParsed.tags = (lastParsed.tags || []).map(t => t === oldBrewery ? newBrewery : t);
+    }
+  } finally {
+    $("editSaveBtn").disabled = false;
+    $("editSaveBtn").textContent = "✓ 確定する";
+  }
+
+  showResult(lastParsed, true);
+});
+
+function clearResult() {
+  resultBlock.classList.add("hidden");
+  errorBlock.classList.add("hidden");
+  noteBlock.classList.add("hidden");
+  articleBlock.classList.add("hidden");
+  wpStatus.classList.add("hidden");
+  detectedName.innerHTML = "";
+  categoryPath.innerHTML = "";
+  tagsContainer.innerHTML = "";
+  noteBlock.textContent = "";
+  articleTitle.textContent = "";
+  $("articleSlug").textContent = "";
+  articleBody.textContent = "";
+  $("facebookText").textContent = "";
+  $("facebookSection").classList.add("hidden");
+  allTagsForCopy = [];
+  lastParsed = null;
+}
+
+// ── Generate Article ────────────────────────────────────
+generateBtn.addEventListener("click", generateArticle);
+
+async function generateArticle() {
+  if (!lastParsed) return;
+  generateBtn.disabled = true;
+  generateBtn.textContent = "生成中...";
+  articleBlock.classList.add("hidden");
+
+  const notes = notesInput.value.trim();
+  const { detected_name, brewery, prefecture, city } = lastParsed;
+
+  const prompt = `あなたは日本酒ブログ「NO SAKE, NO LIFE」のライターです。
+以下の情報をもとにブログ記事の本文を書いてください。
+
+【お酒の情報】
+- 銘柄名: ${detected_name}
+- 蔵元: ${brewery}
+- 産地: ${prefecture}${city ? ` ${city}` : ""}
+${notes ? `- テイスティングメモ: ${notes}` : ""}
+
+【本文の構成（この2セクションのみ）】
+
+■ 酒蔵について
+蔵元の歴史・こだわり・お酒のスタイルを300〜400字で紹介する。
+
+■ 飲んだ感想
+${notes ? `テイスティングメモ「${notes}」をもとに` : "銘柄・蔵元の特徴から想定される"}香り・味わい・余韻を200〜300字で描写する。
+
+【ルール】
+- 見出しは「■ 酒蔵について」「■ 飲んだ感想」の表記をそのまま使う
+- マークダウン記法なし、箇条書きなし
+- 親しみやすい文体で
+
+必ず以下のJSON形式のみで返してください（説明文不要）:
+{
+  "slug": "英語スラッグ（小文字・ハイフン区切り、銘柄名のローマ字表記。例: junmai-daiginjo-sake-name）",
+  "body": "本文全体（改行は\\nで表現）",
+  "facebook": "Facebook投稿用の短文。銘柄名・蔵元・一言感想のみ100字程度。絵文字・ハッシュタグなし。シンプルな文体で。"
+}`;
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({ model: "claude-opus-4-5", max_tokens: 2000, messages: [{ role: "user", content: prompt }] })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message || "APIエラー");
+
+    let jsonText = "";
+    for (const block of data.content || []) {
+      if (block.type === "text" && block.text.includes("{")) { jsonText = block.text; break; }
+    }
+    const parsed = JSON.parse(jsonText.replace(/```json|```/g, "").trim());
+
+    articleTitle.textContent = detected_name;
+    articleBody.textContent  = (parsed.body || "").replace(/\\n/g, "\n");
+    lastParsed._slug = parsed.slug || "";
+    $("articleSlug").textContent = parsed.slug ? `🔗 スラッグ: ${parsed.slug}` : "";
+    $("facebookText").textContent = parsed.facebook || "";
+    $("facebookSection").classList.toggle("hidden", !parsed.facebook);
+    articleBlock.classList.remove("hidden");
+  } catch (e) {
+    errorBlock.textContent = `記事生成エラー: ${e.message}`;
+    errorBlock.classList.remove("hidden");
+  } finally {
+    generateBtn.disabled = false;
+    generateBtn.textContent = "✍️ 記事を生成する";
+  }
+}
+
+// ── Copy ───────────────────────────────────────────────
+function makeCopyBtn(btnId, getText, label) {
+  $(btnId)?.addEventListener("click", () => {
+    const text = getText();
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      $(btnId).textContent = "✓ コピーしました";
+      setTimeout(() => { $(btnId).textContent = label; }, 2000);
+    });
+  });
+}
+makeCopyBtn("copyBtn",      () => allTagsForCopy.join(", "),        "📋 タグをコピー");
+makeCopyBtn("copyTitleBtn", () => articleTitle.textContent,         "📋 タイトルをコピー");
+makeCopyBtn("copyBodyBtn",  () => articleBody.textContent,          "📋 本文をコピー");
+makeCopyBtn("copyFbBtn",    () => $("facebookText").textContent,    "📋 Facebookテキストをコピー");
+
+// ── WordPress 接続テスト ────────────────────────────────
+wpTestBtn.addEventListener("click", async () => {
+  const url  = wpUrlInput.value.trim().replace(/\/$/, "");
+  const pass = wpPassInput.value.trim();
+  if (!url || !pass) {
+    wpTestResult.className = "wp-status error";
+    wpTestResult.textContent = "⚠️ URLと秘密キーを入力してください。";
+    wpTestResult.classList.remove("hidden");
+    return;
+  }
+  wpTestBtn.textContent = "テスト中...";
+  wpTestBtn.disabled = true;
+  wpTestResult.classList.add("hidden");
+  try {
+    const res = await fetch(`${url}/wp-json/sake-extension/v1/post`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Sake-Key": pass },
+      body: JSON.stringify({ title: "__test__", content: "", categories: [], tags: [] }),
+    });
+    const data = await res.json();
+    if (res.ok && data.id) {
+      wpTestResult.className = "wp-status success";
+      wpTestResult.textContent = "✅ 接続成功！WordPressへの投稿が可能です。";
+    } else if (res.status === 401 || res.status === 403) {
+      wpTestResult.className = "wp-status error";
+      wpTestResult.textContent = "❌ 認証失敗：秘密キーがPHPファイルの設定と一致しているか確認してください。";
+    } else if (res.status === 404) {
+      wpTestResult.className = "wp-status error";
+      wpTestResult.textContent = "❌ エンドポイントが見つかりません。mu-pluginsにPHPファイルが正しく置かれているか確認してください。";
+    } else {
+      wpTestResult.className = "wp-status error";
+      wpTestResult.textContent = `❌ エラー ${res.status}: ${data.message || "不明なエラー"}`;
+    }
+  } catch (e) {
+    wpTestResult.className = "wp-status error";
+    wpTestResult.textContent = `❌ 接続できませんでした: ${e.message}`;
+  } finally {
+    wpTestBtn.textContent = "🔍 WordPress 接続テスト";
+    wpTestBtn.disabled = false;
+    wpTestResult.classList.remove("hidden");
+  }
+});
+
+// ── WordPress 投稿 ─────────────────────────────────────
+wpPostBtn.addEventListener("click", async () => {
+  const wpUrl  = localStorage.getItem("wpUrl")  || "";
+  const wpPass = localStorage.getItem("wpPass") || "";
+  if (!wpUrl || !wpPass) {
+    wpStatus.className = "wp-status error";
+    wpStatus.textContent = "⚠️ WordPress接続情報が未設定です。⚙️ 設定から入力してください。";
+    wpStatus.classList.remove("hidden");
+    return;
+  }
+  const title   = articleTitle.textContent.trim();
+  const content = articleBody.textContent.trim();
+  if (!title || !content) return;
+
+  wpPostBtn.disabled = true;
+  wpPostBtn.textContent = "投稿中...";
+  wpStatus.classList.add("hidden");
+  try {
+    const res = await fetch(`${wpUrl}/wp-json/sake-extension/v1/post`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Sake-Key": wpPass },
+      body: JSON.stringify({
+        title, slug: lastParsed._slug || "", content,
+        categories: lastParsed.categories || [],
+        tags: [...(lastParsed.tags || []), ...FIXED_TAGS],
+        image_base64: imageBase64 || null,
+        image_type:   imageType   || null,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
+    const editUrl = data.edit_url || `${wpUrl}/wp-admin/post.php?post=${data.id}&action=edit`;
+    wpStatus.className = "wp-status success";
+    wpStatus.innerHTML = `✅ 下書き保存しました！<br><a href="${editUrl}" target="_blank">WordPressで編集する →</a>`;
+    wpStatus.classList.remove("hidden");
+  } catch (e) {
+    wpStatus.className = "wp-status error";
+    wpStatus.textContent = `❌ エラー: ${e.message}`;
+    wpStatus.classList.remove("hidden");
+  } finally {
+    wpPostBtn.disabled = false;
+    wpPostBtn.textContent = "🟦 WordPressに下書き保存";
+  }
+});
+
+// ── Utils ──────────────────────────────────────────────
+function esc(str) {
+  return String(str ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+</script>
+</body>
+</html>
